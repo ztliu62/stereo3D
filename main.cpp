@@ -10,8 +10,8 @@ using namespace std;
 
 int main() {
     cout << "Hello, World!" << endl;
-    cv::Mat left = cv::imread("../images/Piano/im0.png", 1);
-    cv::Mat right = cv::imread("../images/Piano/im1.png", 1);
+    cv::Mat left = cv::imread("../images/PianoL/im0.png", 1);
+    cv::Mat right = cv::imread("../images/PianoL/im1.png", 1);
     cout << left.rows << " " << left.cols << endl;
 
     //cout<< (int)left.at<uchar>(50,50) <<endl;
@@ -27,7 +27,7 @@ int main() {
     Stereo mySGBM;
     cout<< mySGBM.getKindName() << endl;
     cout<< mySGBM.getParamCount() << endl;
-    mySGBM.stereomatch(left, right, disp);
+    mySGBM.stereomatch(right, left, disp);
 
     return 0;
 }

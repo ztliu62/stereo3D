@@ -233,7 +233,4 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
     imwrite("Census.jpg", disp);
     cout<< disp << endl;
 
-
-
-
 }
