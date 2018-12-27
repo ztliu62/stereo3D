@@ -82,7 +82,7 @@ void StereoOpenCV::stereomatch(Mat &left, Mat &right, Mat &disp){
 
 Stereo::Stereo(){
     this->paramCount = 3;
-    this->params[0] = 3; //Census Window Size
+    this->params[0] = 9; //Census Window Size
     this->params[1] = 5*16; // Number of Disparity
     this->params[2] = 0; // min disparity
 }
@@ -138,23 +138,21 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
 
     disp = Mat::zeros(height, width, CV_8U);
 
-    Mat CensusLeft = Mat::zeros(height, width, CV_32S);
-    Mat CensusRight = Mat::zeros(height, width, CV_32S);
+    long CensusLeft[height][width];
+    long CensusRight[height][width];
 
     int bit = 0;
     cout << "Applying Census Transformation ... " << endl;
     for (int i = w/2; i < height-w/2; i++){
         for (int j = w/2; j < width-w/2; j++){
-            int bitLeft = 0, bitRight = 0;
+            long bitLeft = 0, bitRight = 0;
             for (int row = i-w/2; row <= i+w/2; row++){
                 for(int col = j-w/2; col <= j+w/2; col++){
                     if (row == i && col == j){
                         continue;
                     }
-
-                    int lcenter = (int) left.at<uchar>(i,j);
                     bitLeft <<=1;
-                    if ((int)left.at<uchar>(row, col) < lcenter){
+                    if (left.at<uchar>(row, col) < left.at<uchar>(i,j)){
                         bit = 1;
                     } else {
                         bit = 0;
@@ -163,7 +161,7 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
 
                     int rcenter = (int)right.at<uchar>(i, j);
                     bitRight <<= 1;
-                    if ((int)right.at<uchar>(row, col) < rcenter){
+                    if (right.at<uchar>(row, col) < right.at<uchar>(i, j)){
                         bit = 1;
                     } else {
                         bit = 0;
@@ -173,16 +171,69 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
                 }
             }
 
-            CensusLeft.at<int>(i, j) = bitLeft;
-            CensusRight.at<int>(i,j) = bitRight;
+            CensusLeft[i][j] = bitLeft;
+            CensusRight[i][j] = bitRight;
         }
     }
     //imwrite("CensusLeft.jpg", CensusLeft);
     //imwrite("CensusRight.jpg", CensusRight);
 
+    //Mat Cost = Mat::zeros(height, width*MaxDisp, CV_32S);
+    unsigned long ***Cost;
+    Cost = new unsigned long**[left.rows];
+    for (int row = 0; row < left.rows; ++row) {
+        Cost[row] = new unsigned long*[left.cols];
+        for (int col = 0; col < left.cols; ++col) {
+            Cost[row][col] = new unsigned long[MaxDisp]();
+        }
+    }
 
-    CensusLeft.release();
-    CensusRight.release();
+
+    cout << "Finding Hamming Distance ... " << endl;
+    for(int i = w/2; i < height-w/2; i++){
+        for (int j = w/2; j < width - w/2; j++){
+            long LeftVal = 0, RightVal = 0;
+            for (int  d = 0 ; d< MaxDisp; d++){
+                LeftVal = CensusLeft[i][j];
+                if (j+d < width-w/2){
+                    RightVal = CensusRight[i][j+d];
+                } else {
+                    RightVal = CensusRight[i][j+d-MaxDisp];
+                }
+                //cout << LeftVal << " " << RightVal << endl;
+
+                long ans = LeftVal^RightVal;
+                int dist = 0;
+                while (ans){
+                    dist++;
+                    ans &= ans-1;
+                }
+                //Cost.at<int>(i, j*MaxDisp+d)= dist;
+                Cost[i][j][d] = dist;
+            }
+
+        }
+    }
+    //cout << Cost << endl;
+
+    for (int row = 0; row < height; row++){
+        for (int col = 0; col < width; col++){
+            long minCost = Cost[row][col][0];
+            int minDisp = 0;
+            for(int d = MaxDisp - 1; d >= 0; d--){
+                if (Cost[row][col][d] < minCost){
+                    //cout << Cost.at<int>(row, col*MaxDisp+d) << endl;
+                    minCost = Cost[row][col][d];
+                    minDisp = d;
+                }
+            }
+            disp.at<uchar>(row, col) = minDisp*255.0/MaxDisp;
+        }
+    }
+    imwrite("Census.jpg", disp);
+    cout<< disp << endl;
+
+
 
 
 }
