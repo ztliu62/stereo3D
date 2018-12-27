@@ -40,6 +40,7 @@ public:
     int getParamCount();
     void setParamValue(int index, int value);
     void stereomatch(Mat &left, Mat &right, Mat &disp);
+    void stereoCensus(Mat &left, Mat &right, Mat &disp);
 private:
     int paramCount;
     int params[3];
