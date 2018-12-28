@@ -10,8 +10,8 @@ using namespace std;
 
 int main() {
     cout << "Hello, World!" << endl;
-    cv::Mat left = cv::imread("../images/PianoL/im0.png", 1);
-    cv::Mat right = cv::imread("../images/PianoL/im1.png", 1);
+    cv::Mat left = cv::imread("../images/Motorcycle/im0.png", 1);
+    cv::Mat right = cv::imread("../images/Motorcycle/im1.png", 1);
     cout << left.rows << " " << left.cols << endl;
 
     //cv::imshow("image", left);
