@@ -14,16 +14,16 @@ int main() {
     cv::Mat right = cv::imread("../images/PianoL/im1.png", 1);
     cout << left.rows << " " << left.cols << endl;
 
-    //cout<< (int)left.at<uchar>(50,50) <<endl;
-
-    Mat disp;
     //cv::imshow("image", left);
     //cv::waitKey(0);
+
+    Mat disp;
+    /*
     StereoOpenCV sgbm;
     cout << sgbm.getKindName() << endl;
     cout << sgbm.getParamCount() << endl;
     sgbm.stereomatch(left, right, disp);
-
+    */
     Stereo mySGBM;
     cout<< mySGBM.getKindName() << endl;
     cout<< mySGBM.getParamCount() << endl;

@@ -41,9 +41,10 @@ public:
     void setParamValue(int index, int value);
     void stereomatch(Mat &left, Mat &right, Mat &disp);
     void stereoCensus(Mat &left, Mat &right, Mat &disp);
+    void stereoSGBM(Mat &left, Mat &right, Mat &disp);
 private:
     int paramCount;
-    int params[3];
+    int params[5];
 
 };
 #endif //STEREO_STEREOMATCH_H
