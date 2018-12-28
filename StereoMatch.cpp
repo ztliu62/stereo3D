@@ -12,48 +12,34 @@
 using namespace std;
 
 StereoOpenCV::StereoOpenCV() {
-    this->paramCount = 3;
-    this->params[0] = 9; // SAD Windows Size
-    this->params[1] = 5*16; // Number of Disparity
-    this->params[2] = 0; // min Disparity
+    this->SADWindowSize = 5;
+    this->NumofDisparity = 5*16;
 }
 
 string StereoOpenCV::getKindName() {
     return "SGBM_OpenCV";
 }
 
-int StereoOpenCV::getParamCount() {
-    return this->paramCount;
-}
-
-void StereoOpenCV::setParamValue(int index, int value) {
-
-    if (index == 0){
-        if (value%2 == 0){
-            value += 1;
-        }
-    } else if (index == 1){
-        if (value%16 != 0){
-            value = (value/16)*16;
-        }
-    } else if (index == 2){
-
-    } else {
-        return;
+void StereoOpenCV::setNumofDisparity(int value) {
+    if (value%16 != 0){
+        this->NumofDisparity = (value/16)*16;
     }
-    this->params[index] = value;
 }
 
-void StereoOpenCV::stereomatch(Mat &left, Mat &right, Mat &disp){
+void StereoOpenCV::setSADWindowSize(int value) {
+    this->SADWindowSize = value|1;
+}
+
+void StereoOpenCV::stereoMatch(Mat &left, Mat &right, Mat &disp){
     Mat leftgray, rightgray;
     leftgray.create(left.size(), CV_8UC1);
     rightgray.create(right.size(), CV_8UC1);
     cvtColor(left, leftgray, CV_BGR2GRAY);
     cvtColor(right, rightgray, CV_BGR2GRAY);
 
-    int SADWinSize = this->params[0];
-    int numofDisparity = this->params[1];
-    int minDisparity = this->params[2];
+    int SADWinSize = this->SADWindowSize;
+    int numofDisparity = this->NumofDisparity;
+    int minDisparity = 0;
     int cn = 1;
 
     Ptr<StereoSGBM> sgbm = StereoSGBM::create();
@@ -80,64 +66,73 @@ void StereoOpenCV::stereomatch(Mat &left, Mat &right, Mat &disp){
     cv::waitKey(0);
 }
 
+
+
+
+
 Stereo::Stereo(){
-    this->paramCount = 5;
-    this->params[0] = 5; //Census Window Size
-    this->params[1] = 5*16; // Number of Disparity
-    this->params[2] = 0; // min disparity
-    this->params[3] = 8; //P1
-    this->params[4] = 32; //P2
+    this->NumofDisparity = 5*16;
+    this->CensusWindowSize = 7;
+    this->P1 = 8;
+    this->P2 = 32;
+    this->Visualize = true;
 }
 
 string Stereo::getKindName() {
     return "mySGBM";
 }
 
-int Stereo::getParamCount() {
-    return this->paramCount;
+void Stereo::setCensusWindowSize(int value) {
+    this->CensusWindowSize = value|1;
 }
 
-void Stereo::setParamValue(int index, int value) {
-
-    if (index == 0){
-        if (value%2 == 0){
-            value += 1;
-        }
-    } else if (index == 1){
-        if (value%16 != 0){
-            value = (value/16)*16;
-        }
-    } else if (index == 2){
-
-    } else {
-        return;
+void Stereo::setNumofDisparity(int value) {
+    if (value%16 != 0){
+        this->NumofDisparity = (value/16)*16;
     }
-    this->params[index] = value;
 }
 
-void Stereo::stereomatch(Mat &left, Mat &right, Mat &disp) {
+void Stereo::setP(int Param1, int Param2) {
+    this->P1 = Param1;
+    this->P2 = Param2;
+}
+
+void Stereo::setVisualize(bool value){
+    this->Visualize = value;
+}
+
+
+void Stereo::stereoMatch(Mat &left, Mat &right, Mat &disp) {
     Mat leftgray, rightgray;
     leftgray.create(left.size(), CV_8UC1);
     rightgray.create(right.size(), CV_8UC1);
+
     cvtColor(left, leftgray, CV_BGR2GRAY);
     cvtColor(right, rightgray, CV_BGR2GRAY);
 
-    int CensusWindowSize = this->params[0];
-    int numofDisparity = this->params[1];
-    int minDisparity = this->params[2];
+    width = leftgray.cols, height = leftgray.rows;
 
 
-    Mat disp1;
-    //Stereo::stereoCensus(leftgray, rightgray, disp);
-    Stereo::stereoSGBM(leftgray, rightgray, disp);
+    unsigned long ***Cost;
+    Cost = new unsigned long**[height];
+    for (int row = 0; row < height; ++row) {
+        Cost[row] = new unsigned long*[width];
+        for (int col = 0; col < width; ++col) {
+            Cost[row][col] = new unsigned long[NumofDisparity]();
+        }
+    }
+    Mat dispCensus, dispSGBM;
+    CensusMatch(leftgray, rightgray, dispCensus, Cost);
+    stereoSGBM(Cost, dispSGBM);
 
+    disp = dispCensus;
 
 }
 
-void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
-    int w = this->params[0];
-    int MaxDisp = this->params[1];
-    const int width = left.cols, height = left.rows;
+void Stereo::CensusMatch(Mat &left, Mat &right, Mat &disp, unsigned long ***Cost) {
+    int w = this->CensusWindowSize;
+    int MaxDisp = this->NumofDisparity;
+    width = left.cols, height = left.rows;
 
     disp = Mat::zeros(height, width, CV_8U);
 
@@ -162,7 +157,6 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
                     }
                     bitLeft |= bit;
 
-                    int rcenter = (int)right.at<uchar>(i, j);
                     bitRight <<= 1;
                     if (right.at<uchar>(row, col) < right.at<uchar>(i, j)){
                         bit = 1;
@@ -178,19 +172,6 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
             CensusRight[i][j] = bitRight;
         }
     }
-    //imwrite("CensusLeft.jpg", CensusLeft);
-    //imwrite("CensusRight.jpg", CensusRight);
-
-    //Mat Cost = Mat::zeros(height, width*MaxDisp, CV_32S);
-    unsigned long ***Cost;
-    Cost = new unsigned long**[left.rows];
-    for (int row = 0; row < left.rows; ++row) {
-        Cost[row] = new unsigned long*[left.cols];
-        for (int col = 0; col < left.cols; ++col) {
-            Cost[row][col] = new unsigned long[MaxDisp]();
-        }
-    }
-
 
     cout << "Finding Hamming Distance ... " << endl;
     for(int i = w/2; i < height-w/2; i++){
@@ -211,21 +192,19 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
                     dist++;
                     ans &= ans-1;
                 }
-                //Cost.at<int>(i, j*MaxDisp+d)= dist;
                 Cost[i][j][d] = dist;
             }
 
         }
     }
-    //cout << Cost << endl;
 
+    // Find Disparity
     for (int row = 0; row < height; row++){
         for (int col = 0; col < width; col++){
             long minCost = Cost[row][col][0];
             int minDisp = 0;
             for(int d = MaxDisp - 1; d >= 0; d--){
                 if (Cost[row][col][d] < minCost){
-                    //cout << Cost.at<int>(row, col*MaxDisp+d) << endl;
                     minCost = Cost[row][col][d];
                     minDisp = d;
                 }
@@ -234,142 +213,26 @@ void Stereo::stereoCensus(Mat &left, Mat &right, Mat &disp) {
         }
     }
 
-    cv::medianBlur(disp, disp, 3);
-    imwrite("Census.jpg", disp);
-    //display code
-    cv::Mat disp_color;
-    cv::applyColorMap(disp, disp_color, cv::COLORMAP_JET);
+    medianBlur(disp, disp, 3);
+    imwrite("CensusMatch.jpg", disp);
 
-    cv::imshow("Disparity", disp_color);
-    cv::waitKey(0);
-    //cout<< disp << endl;
+    if (Visualize){
+        cv::Mat disp_color;
+        cv::applyColorMap(disp, disp_color, cv::COLORMAP_JET);
 
+        cv::imshow("Disparity", disp_color);
+        cv::waitKey(0);
+    }
 }
 
-void Stereo::stereoSGBM(Mat &left, Mat &right, Mat &disp) {
-    int w = this->params[0];
-    int MaxDisp = this->params[1];
-    const int width = left.cols, height = left.rows;
-    int P1 = this->params[3];
-    int P2 = this->params[4];
+void Stereo::stereoSGBM(unsigned long ***Cost, Mat &disp1) {
 
-    disp = Mat::zeros(height, width, CV_8U);
-
-    long CensusLeft[height][width];
-    long CensusRight[height][width];
-
-    int bit = 0;
-    cout << "Applying Census Transformation ... " << endl;
-    for (int i = w/2; i < height-w/2; i++){
-        for (int j = w/2; j < width-w/2; j++){
-            long bitLeft = 0, bitRight = 0;
-            for (int row = i-w/2; row <= i+w/2; row++){
-                for(int col = j-w/2; col <= j+w/2; col++){
-                    if (row == i && col == j){
-                        continue;
-                    }
-                    bitLeft <<=1;
-                    if (left.at<uchar>(row, col) < left.at<uchar>(i,j)){
-                        bit = 1;
-                    } else {
-                        bit = 0;
-                    }
-                    bitLeft |= bit;
-
-                    int rcenter = (int)right.at<uchar>(i, j);
-                    bitRight <<= 1;
-                    if (right.at<uchar>(row, col) < right.at<uchar>(i, j)){
-                        bit = 1;
-                    } else {
-                        bit = 0;
-                    }
-                    bitRight |= bit;
-
-                }
-            }
-
-            CensusLeft[i][j] = bitLeft;
-            CensusRight[i][j] = bitRight;
-        }
-    }
-    //imwrite("CensusLeft.jpg", CensusLeft);
-    //imwrite("CensusRight.jpg", CensusRight);
-
-    //Mat Cost = Mat::zeros(height, width*MaxDisp, CV_32S);
-    unsigned long ***Cost;
-    Cost = new unsigned long**[left.rows];
-    for (int row = 0; row < left.rows; ++row) {
-        Cost[row] = new unsigned long*[left.cols];
-        for (int col = 0; col < left.cols; ++col) {
-            Cost[row][col] = new unsigned long[MaxDisp]();
-        }
-    }
-
-
-    cout << "Finding Hamming Distance ... " << endl;
-    for(int i = w/2; i < height-w/2; i++){
-        for (int j = w/2; j < width - w/2; j++){
-            long LeftVal = 0, RightVal = 0;
-            for (int  d = 0 ; d< MaxDisp; d++){
-                LeftVal = CensusLeft[i][j];
-                if (j+d < width-w/2){
-                    RightVal = CensusRight[i][j+d];
-                } else {
-                    RightVal = CensusRight[i][j+d-MaxDisp];
-                }
-                //cout << LeftVal << " " << RightVal << endl;
-
-                long ans = LeftVal^RightVal;
-                int dist = 0;
-                while (ans){
-                    dist++;
-                    ans &= ans-1;
-                }
-                //Cost.at<int>(i, j*MaxDisp+d)= dist;
-                Cost[i][j][d] = dist;
-            }
-
-        }
-    }
-    //cout << Cost << endl;
-
-    for (int row = 0; row < height; row++){
-        for (int col = 0; col < width; col++){
-            long minCost = Cost[row][col][0];
-            int minDisp = 0;
-            for(int d = MaxDisp - 1; d >= 0; d--){
-                if (Cost[row][col][d] < minCost){
-                    //cout << Cost.at<int>(row, col*MaxDisp+d) << endl;
-                    minCost = Cost[row][col][d];
-                    minDisp = d;
-                }
-            }
-            disp.at<uchar>(row, col) = minDisp*255.0/MaxDisp;
-        }
-    }
-
-    cv::medianBlur(disp, disp, 3);
-    imwrite("Census.jpg", disp);
-    /*
-    //display code
-    cv::Mat disp_color;
-    cv::applyColorMap(disp, disp_color, cv::COLORMAP_JET);
-
-    cv::imshow("Disparity", disp_color);
-    cv::waitKey(0);
-    //cout<< disp << endl;
-    */
-
-    //
-    // Starting SGBM
-    //
     cout << "Starting SGBM ..." << endl;
-    cv::Mat disp1;
     disp1.create(height, width, CV_8U);
 
+    int MaxDisp = NumofDisparity;
     int LrWidth = width + 2;
     int LrMax = MaxDisp + 2;
-
 
     int ****Lr;
     Lr = new int***[2];
@@ -528,11 +391,13 @@ void Stereo::stereoSGBM(Mat &left, Mat &right, Mat &disp) {
     cv::medianBlur(disp1, disp1, 3);
     imwrite("SGBM.jpg", disp1);
 
-    cv::Mat disp_color;
-    cv::applyColorMap(disp1, disp_color, cv::COLORMAP_JET);
+    if (Visualize){
+        cv::Mat disp_color;
+        cv::applyColorMap(disp1, disp_color, cv::COLORMAP_JET);
 
-    cv::imshow("Disparity", disp_color);
-    cv::waitKey(0);
+        cv::imshow("Disparity", disp_color);
+        cv::waitKey(0);
+    }
 
     delete []Lr;
     delete []minLr;

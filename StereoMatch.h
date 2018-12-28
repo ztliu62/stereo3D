@@ -4,6 +4,7 @@
 
 #ifndef STEREO_STEREOMATCH_H
 #define STEREO_STEREOMATCH_H
+
 #include <string>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -16,35 +17,43 @@ using namespace cv;
 class StereoMatch {
 public:
     virtual string getKindName() = 0;
-    virtual int getParamCount() = 0;
-    virtual void setParamValue(int index, int value) = 0;
-    virtual void stereomatch(Mat &left, Mat &right, Mat &disp) = 0;
+    virtual void stereoMatch(Mat &left, Mat& right, Mat &disp) = 0;
+
 };
 
 class StereoOpenCV : public StereoMatch {
 public:
     StereoOpenCV();
     string getKindName();
-    int getParamCount();
-    void setParamValue(int index, int value);
-    void stereomatch(Mat &left, Mat& right, Mat &disp);
+    void setSADWindowSize(int value);
+    void setNumofDisparity(int value);
+    void stereoMatch(Mat &left, Mat& right, Mat &disp);
 private:
-    int paramCount;
-    int params[3];
+    int SADWindowSize;
+    int NumofDisparity;
 };
 
 class Stereo : public StereoMatch {
 public:
     Stereo();
     string getKindName();
-    int getParamCount();
-    void setParamValue(int index, int value);
-    void stereomatch(Mat &left, Mat &right, Mat &disp);
-    void stereoCensus(Mat &left, Mat &right, Mat &disp);
-    void stereoSGBM(Mat &left, Mat &right, Mat &disp);
+    void setCensusWindowSize(int value);
+    void setNumofDisparity(int value);
+    void setP(int Param1, int Param2);
+    void setVisualize(bool value);
+    void stereoMatch(Mat &left, Mat &right, Mat &disp);
+    void CensusMatch(Mat &left, Mat &right, Mat &disp, unsigned long ***Cost);
+    void stereoSGBM(unsigned long ***Cost, Mat &disp1);
+
 private:
-    int paramCount;
-    int params[5];
+    int CensusWindowSize;
+    int NumofDisparity;
+    int P1;
+    int P2;
+    bool Visualize;
+
+    int height;
+    int width;
 
 };
 #endif //STEREO_STEREOMATCH_H

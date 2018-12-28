@@ -9,25 +9,24 @@
 using namespace std;
 
 int main() {
-    cout << "Hello, World!" << endl;
-    cv::Mat left = cv::imread("../images/Motorcycle/im0.png", 1);
-    cv::Mat right = cv::imread("../images/Motorcycle/im1.png", 1);
-    cout << left.rows << " " << left.cols << endl;
-
-    //cv::imshow("image", left);
-    //cv::waitKey(0);
+    cv::Mat left = cv::imread("../images/PianoL/im0.png", 1);
+    cv::Mat right = cv::imread("../images/PianoL/im1.png", 1);
 
     Mat disp;
-    /*
     StereoOpenCV sgbm;
     cout << sgbm.getKindName() << endl;
-    cout << sgbm.getParamCount() << endl;
-    sgbm.stereomatch(left, right, disp);
-    */
+    sgbm.setSADWindowSize(5);
+    sgbm.setNumofDisparity(5*16);
+    sgbm.stereoMatch(left, right, disp);
+
+    Mat disp1;
     Stereo mySGBM;
     cout<< mySGBM.getKindName() << endl;
-    cout<< mySGBM.getParamCount() << endl;
-    mySGBM.stereomatch(right, left, disp);
+    mySGBM.setNumofDisparity(5*16);
+    mySGBM.setCensusWindowSize(5);
+    mySGBM.setP(8,56);
+    mySGBM.setVisualize(true);
+    mySGBM.stereoMatch(right, left, disp1);
 
     return 0;
 }
