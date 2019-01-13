@@ -113,7 +113,7 @@ void Stereo::stereoMatch(Mat &left, Mat &right, Mat &disp) {
     width = leftgray.cols, height = leftgray.rows;
 
 
-    unsigned long ***Cost;
+    unsigned long ***Cost;  // Cost[row][col][disparity]
     Cost = new unsigned long**[height];
     for (int row = 0; row < height; ++row) {
         Cost[row] = new unsigned long*[width];
@@ -182,7 +182,7 @@ void Stereo::CensusMatch(Mat &left, Mat &right, Mat &disp, unsigned long ***Cost
                 if (j+d < width-w/2){
                     RightVal = CensusRight[i][j+d];
                 } else {
-                    RightVal = CensusRight[i][j+d-MaxDisp];
+                    RightVal = CensusRight[i][j-MaxDisp+d];
                 }
                 //cout << LeftVal << " " << RightVal << endl;
 
@@ -235,7 +235,7 @@ void Stereo::stereoSGBM(unsigned long ***Cost, Mat &disp1) {
     int LrMax = MaxDisp + 2;
 
     int ****Lr;
-    Lr = new int***[2];
+    Lr = new int***[2]; // Lr[2][LrWidth][LrMax][4]: every pixel with its all disparity values
     for (int row = 0; row < 2; ++row) {
         Lr[row] = new int**[LrWidth];
         for (int col = 0; col < LrWidth; ++col) {
@@ -246,7 +246,7 @@ void Stereo::stereoSGBM(unsigned long ***Cost, Mat &disp1) {
         }
     }
 
-    int ***minLr;
+    int ***minLr; //minLr[2][LrWidth][4]: min disparity for every pixel
     minLr = new int **[2];
     for (int row = 0; row < 2; row++){
         minLr[row] = new int*[LrWidth];
@@ -255,7 +255,7 @@ void Stereo::stereoSGBM(unsigned long ***Cost, Mat &disp1) {
         }
     }
 
-    long ***S;
+    long ***S; // S[height][width][MaxDisp]
     S = new long**[height];
     for (int row = 0; row < height; row++){
         S[row] = new long*[width];
