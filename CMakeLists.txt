@@ -3,6 +3,8 @@ project(stereo)
 
 set(CMAKE_CXX_STANDARD 11)
 
+
+# OpenCV package
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 

@@ -20,7 +20,7 @@ public:
     virtual void stereoMatch(Mat &left, Mat& right, Mat &disp) = 0;
 
 };
-
+// StereoMatch for OpenCV function
 class StereoOpenCV : public StereoMatch {
 public:
     StereoOpenCV();
@@ -33,6 +33,7 @@ private:
     int NumofDisparity;
 };
 
+// self implemented SGBM
 class Stereo : public StereoMatch {
 public:
     Stereo();
@@ -44,6 +45,7 @@ public:
     void stereoMatch(Mat &left, Mat &right, Mat &disp);
     void CensusMatch(Mat &left, Mat &right, Mat &disp, unsigned long ***Cost);
     void stereoSGBM(unsigned long ***Cost, Mat &disp1);
+
 
 private:
     int CensusWindowSize;
